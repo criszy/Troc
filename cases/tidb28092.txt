@@ -1,0 +1,19 @@
+CREATE TABLE t(c1 BLOB NOT NULL, c2 TEXT);
+INSERT IGNORE INTO t VALUES (NULL, NULL);
+INSERT INTO t VALUES (0x32, 'aaa');
+
+RR
+BEGIN;
+UPDATE t SET c2 = 'xyz' WHERE c1;
+ROLLBACK;
+
+RR
+BEGIN;
+UPDATE t SET c2 = 'bbb';
+UPDATE t SET c2 = 'xyz' WHERE c1;
+COMMIT;
+
+1-1-1-2-2-2-2
+END
+
+Error: Inconsistent final database state

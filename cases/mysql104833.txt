@@ -1,0 +1,19 @@
+CREATE TABLE t(a INT, b INT)
+INSERT INTO t VALUES(NULL, 1), (2, 2), (NULL, 3)
+
+RC
+BEGIN
+UPDATE t SET a = 10
+COMMIT
+
+RC
+BEGIN
+UPDATE t SET b = 20 WHERE a
+COMMIT
+
+1-1-2-2-1-2
+END
+
+Error: Inconsistent final database state
+
+RU, RC: Verified!

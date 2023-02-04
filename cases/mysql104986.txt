@@ -1,0 +1,22 @@
+CREATE TABLE t(a int, b int)
+INSERT INTO t VALUES(0, 0), (1, 1), (2, 2)
+
+RR
+BEGIN
+SELECT * FROM t
+SELECT * FROM t
+UPDATE t SET a = 10
+SELECT * FROM t
+COMMIT
+
+RR
+BEGIN
+UPDATE t SET a = 10 WHERE b = 1
+COMMIT
+
+1-1-2-2-2-1-1-1-1
+END
+
+Error: Inconsistent query result
+
+Duplicate...

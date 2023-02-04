@@ -1,0 +1,18 @@
+CREATE TABLE t(c1 VARCHAR(20), c2 INT);
+INSERT INTO t VALUES ('abc', 1);
+
+RR
+BEGIN;
+UPDATE t SET c2 = 10 WHERE CAST(c1 AS DECIMAL) + 1;
+ROLLBACK;
+
+RR
+BEGIN;
+UPDATE t SET c2 = 9;
+UPDATE t SET c2 = 10 WHERE CAST(c1 AS DECIMAL) + 1;
+COMMIT;
+
+1-1-1-2-2-2-2
+END
+
+Error: Inconsistent final database state

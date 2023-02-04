@@ -1,0 +1,21 @@
+CREATE TABLE t(c1 INT PRIMARY KEY)
+INSERT INTO t(c1) VALUES (8)
+
+RC
+BEGIN
+UPDATE t SET c1 = 5
+UPDATE t SET c1 = 3
+COMMIT
+
+RC
+BEGIN
+DELETE FROM t
+SELECT * FROM t FOR UPDATE
+COMMIT
+
+1-2-1-2-1-1-2-2
+END
+
+Error: Inconsistent final database state
+
+Verified
