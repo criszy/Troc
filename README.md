@@ -46,22 +46,43 @@ Important Parameters:
 * `--set-case`: Whether you use a predefined test case as test input. Default: `false`
 * `--case-file`: The path of the text file that contains the predefined test case. Default: `""`
 
+After following the instructions to install our test version of the three DBMSs (i.e., MySQL, MariaDB and TiDB),
+you will get some parameters required for running Troc:
+* MySQL:
+  * `host`: `127.0.0.1`
+  * `port`: `10003`
+  * `username`: `"root"`
+  * `password`: `"root"`
+* MariaDB:
+  * `host`: `127.0.0.1`
+  * `port`: `10004`
+  * `username`: `"root"`
+  * `password`: `"root"`
+* TiDB:
+  * `host`: `127.0.0.1`
+  * `port`: `4000`
+  * `username`: `"root"`
+  * `password`: `""`
+
+**NOTE:**
+If you already have deployed these DBMSs, the relevant parameters need to be replaced with those of your deployed DBMSs.
+
 ## Troc testing
 
 The following commands automatically generate test cases for testing DBMSs.
 
-For example, we connect to MySQL (`--dbms mysql --username root --password root`) and run Troc in MySQL. We specify that 
-the name of the tested table is t (`--table t`).
+For example, we connect to MariaDB (`--dbms mysql --host 127.0.0.1 --port 10004 --username root --password root`) and run Troc in MariaDB. 
+We specify that the name of the tested table is t (`--table t`).
 ```bash
 cd target
-java -jar troc*.jar --dbms mariadb --username root --password root --table t
+java -jar troc*.jar --dbms mariadb --host 127.0.0.1 --port 10004 --username root --password root --table t
 ```
 
 The outputs include four parts. All of them are recorded in `troc.log`.
 
 * Connect to target DBMS.
 ```bash
-01/25 14:37:24.663 INFO troc.Main main: Run tests for MariaDB in [DB test]-[Table t] on [127.0.0.1:3306]
+01/25 14:37:24.663 INFO troc.Main main: Run tests for MariaDB in [DB test]-[Table t] on [127.0.0.1:10004]
 ```
 
 * Generate a table.
@@ -202,9 +223,10 @@ This can be used to reproduce known bugs.
 We have provided some test cases in the `cases` directory.
 
 1. The following commands use predefined test case in text file as input.
+For example, we test TiDB with test case in text file cases/test.txt as input.
 ```bash
 cd target
-java -jar troc*.jar --dbms tidb --port 4000 --password root --set-case --case-file ../cases/test.txt --table t
+java -jar troc*.jar --dbms tidb --host 127.0.0.1 --port 4000 --username root --set-case --case-file ../cases/test.txt --table t
 ```
 
 The outputs of these commands include five parts. All of them are recorded in `troc.log`.
@@ -292,13 +314,105 @@ The third output indicates the location of detected discrepancies.
 01/22 19:16:50.698 INFO troc.TrocChecker main: query: SELECT * FROM t WHERE TRUE
 ```
 
-2. The following commands input predefined test case as input from command line. 
+2. The following commands input predefined test case as input from command line.
 
+**NOTE:**
 Please take care the format, which you can learn from the provided case 
 files in "cases" directory.
+
+For example, we test MySQL with test case in text file cases/text.txt as input from command line.
 ```bash
-cd target
-java -jar troc*.jar --dbms mysql --set-case --table t
+cd target 
+java -jar troc*.jar --dbms mysql --host 127.0.0.1 --port 10003 --username root --password root --set-case --table t
+```
+
+* Show the output.
+```bash
+02/11 18:02:06.819 INFO troc.Main main: Run tests for MYSQL in [DB test]-[Table t] on [127.0.0.1:10003]
+02/11 18:02:07.466 INFO troc.Main main: Read database and transactions from command line
+```
+
+* Input the test case.
+```bash
+CREATE TABLE t (c1 INT PRIMARY KEY, c2 INT)
+INSERT INTO t VALUES(1, 1), (2, 2)
+
+RR
+BEGIN
+SELECT * FROM t
+SELECT * FROM t
+DELETE FROM t WHERE c1 = 1 OR c1 = 2
+SELECT * FROM t
+COMMIT
+
+RR
+BEGIN
+DELETE FROM t WHERE c1 = 1
+COMMIT
+
+1-1-2-2-2-1-1-1-1
+END
+```
+
+* Show the outputs.
+```bash
+02/11 18:02:39.503 INFO troc.Main main: Initial table:
+View{
+        1:[1, 1]
+        2:[2, 2]
+}
+
+02/11 18:02:39.516 INFO troc.Main main: Read transactions from file:
+Transaction{1, REPEATABLE_READ}, with statements:
+        BEGIN;
+        SELECT * FROM t WHERE TRUE;
+        SELECT * FROM t WHERE TRUE;
+        DELETE FROM t WHERE c1 = 1 OR c1 = 2;
+        SELECT * FROM t WHERE TRUE;
+        COMMIT;
+Transaction{2, REPEATABLE_READ}, with statements:
+        BEGIN;
+        DELETE FROM t WHERE c1 = 1;
+        COMMIT;
+
+02/11 18:02:39.518 INFO troc.Main main: Get schedule from file: 1-1-2-2-2-1-1-1-1
+02/11 18:02:39.519 INFO troc.TrocChecker main: Check new schedule.
+02/11 18:02:47.714 INFO troc.TrocChecker main: Schedule: [1-0, 1-1, 2-0, 2-1, 2-2, 1-2, 1-3, 1-4, 1-5]
+02/11 18:02:47.716 INFO troc.TrocChecker main: Input schedule: 1-1-2-2-2-1-1-1-1
+02/11 18:02:47.720 INFO troc.TrocChecker main: Get execute result: Result:
+Order:[1-0, 1-1, 2-0, 2-1, 2-2, 1-2, 1-3, 1-4, 1-5]
+Query Results:
+        1-0: null
+        1-1: [1, 1, 2, 2]
+        2-0: null
+        2-1: null
+        2-2: null
+        1-2: [1, 1, 2, 2]
+        1-3: null
+        1-4: [1, 1]
+        1-5: null
+FinalState: []
+DeadBlock: false
+
+02/11 18:02:47.720 INFO troc.TrocChecker main: MVCC-based oracle order: [1-0, 1-1, 2-0, 2-1, 2-2, 1-2, 1-3, 1-4, 1-5]
+02/11 18:02:47.721 INFO troc.TrocChecker main: MVCC-based oracle result: Result:
+Order:[1-0, 1-1, 2-0, 2-1, 2-2, 1-2, 1-3, 1-4, 1-5]
+Query Results:
+        1-0: null
+        1-1: [1, 1, 2, 2]
+        2-0: null
+        2-1: null
+        2-2: null
+        1-2: [1, 1, 2, 2]
+        1-3: null
+        1-4: []
+        1-5: null
+FinalState: []
+DeadBlock: false
+
+02/11 18:02:47.722 INFO troc.TrocChecker main: txp: 1, all case: 1, skip: 0
+02/11 18:02:47.724 INFO troc.TrocChecker main: Error: Inconsistent query result
+02/11 18:02:47.725 INFO troc.TrocChecker main: query: SELECT * FROM t WHERE TRUE
 ```
 
 # Bug List
