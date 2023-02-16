@@ -7,7 +7,7 @@ Troc (Transaction oracle construction) is a tool to automatically detect isolati
 bugs as those bugs that design flaws or buggy implementations of DBMSs' transaction mechanisms can violate their claimed 
 isolation levels.
 
-An archived version of the artifact is available on Zenodo. See https://doi.org/10.5281/zenodo.7571423.
+An archived version of the artifact is available on Zenodo. See https://doi.org/10.5281/zenodo.7645649.
 
 ## Overview
 
